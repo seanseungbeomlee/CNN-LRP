@@ -1,12 +1,3 @@
-# RESOURCES:
-# https://git.tu-berlin.de/gmontavon/lrp-tutorial
-# https://github.com/sebastian-lapuschkin/lrp_toolbox
-# https://github.com/albermax/innvestigate/blob/master/README.md
-# https://github.com/chr5tphr/zennit
-# https://giorgiomorales.github.io/Layer-wise-Relevance-Propagation-in-Pytorch/
-# http://www.heatmapping.org/index.html#software
-# https://lrpserver.hhi.fraunhofer.de/handwriting-classification
-
 from random import sample
 import torch
 from torch import nn
