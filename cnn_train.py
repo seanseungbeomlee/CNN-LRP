@@ -9,7 +9,7 @@ from torchvision.utils import make_grid
 import numpy as np
 from matplotlib import pyplot as plt
 import cnn
-# https://pytorch.org/tutorials/beginner/basics/quickstart_tutorial.html
+
 # %%
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device
