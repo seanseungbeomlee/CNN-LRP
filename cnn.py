@@ -1,5 +1,3 @@
-# IDEAL CNN ARCHITECTURE: 784 - [32C5-P2] - [64C5-P2] - 128 - 10
-# SOURCE: https://www.kaggle.com/code/cdeotte/how-to-choose-cnn-architecture-mnist/notebookimport torch.nn as nn
 import torch.nn as nn
 from torchsummary import summary
 
