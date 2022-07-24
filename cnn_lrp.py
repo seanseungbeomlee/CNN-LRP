@@ -68,7 +68,7 @@ def newlayer(layer,g):
     try: layer.weight = nn.Parameter(g(layer.weight))
     except AttributeError: pass
 
-    try: layer.bias   = nn.Parameter(g(layer.bias))
+    try: layer.bias = nn.Parameter(g(layer.bias))
     except AttributeError: pass
     return layer
 
@@ -85,6 +85,7 @@ keys = [param.keys() for param in params]
 weights = [params[i]['weight'] if 'weight' in keys[i] else None for i in range(len(params))]
 biases = [params[i]['bias'] if 'bias' in keys[i] else None for i in range(len(params))]
 L = len(weights)
+print('Number of layers: ' + str(L))
 
 # sample image and label
 sample_idx = 0
@@ -98,31 +99,40 @@ for l in range(L):
     A[l+1] = layers[l].forward(A[l])
 
 scores = np.array(A[-1].data.view(-1))
-T = torch.FloatTensor((1.0*(np.arange(1000)==483).reshape([1,1000,1,1])))
+T = torch.FloatTensor((1.0*(np.arange(10)==sample_label).reshape([1,10,1,1])))
 R = [None]*L + [(A[-1]*T).data]
 
 for l in range(1,L)[::-1]:
     A[l] = (A[l].data).requires_grad_(True)
 
     if isinstance(layers[l],torch.nn.MaxPool2d): 
-        layers[l] = torch.nn.AvgPool2d(2)
+        layers[l] = torch.nn.AvgPool2d(kernel_size=2)
     if isinstance(layers[l],torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-        if l <= 2:       
-            rho = lambda p: p + 0.25*p.clamp(min=0)
-            incr = lambda z: z+1e-9
-        if 3 <= l <= 5: 
-            rho = lambda p: p
-            incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
-        if l >= 6:       
-            rho = lambda p: p
-            incr = lambda z: z+1e-9
 
-        z = incr(newlayer(layers[l],rho).forward(A[l]))        # step 1
-        print(R[l+1].shape)
-        print(z.shape)
-        s = (R[l+1]/z).data                                    # step 2
+        # try using vanilla rho and incr first
+        # if l <= 2:       
+        #     rho = lambda p: p + 0.25*p.clamp(min=0)
+        #     incr = lambda z: z+1e-9
+        # if 3 <= l <= 5: 
+        #     rho = lambda p: p
+        #     incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
+        # if l >= 6:       
+        #     rho = lambda p: p
+        #     incr = lambda z: z+1e-9
+
+        rho = lambda p: p
+        incr = lambda z: z+1e-9
+
+        z = incr(newlayer(layers[l], rho).forward(A[l]))        # step 1
+        print('layer: ' + str(l) + ', ' + str(layers[l]))
+        print('R shape: ' + str(R[l+1].shape))
+        print('z shape: ' + str(z.shape))
+        s = (R[l+1] / z).data                                    # step 2
         (z*s).sum().backward() 
         c = A[l].grad                  # step 3
         R[l] = (A[l]*c).data                                   # step 4
     else:
+        print('layer: ' + str(l) + ', ' + str(layers[l]))
+        print('R shape: ' + str(R[l+1].shape))
         R[l] = R[l+1]
+
