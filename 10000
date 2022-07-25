@@ -10,3 +10,83 @@
 : 1658684771:0;python cnn_lrp.py
 : 1658709202:0;clear
 : 1658709203:0;python cnn_lrp.py
+: 1658710260:0;git status
+: 1658710314:0;git merge origin/master
+: 1658710317:0;git status
+: 1658710338:0;git checkout branch-name
+: 1658710347:0;git checkout master
+: 1658710363:0;git fetch remote-name
+: 1658710480:0;clear
+: 1658710481:0;ls
+: 1658710495:0;git add cnn_lrp.py
+: 1658710614:0;git commit "Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None."
+: 1658710650:0;git commit cnn.lrp 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.'
+: 1658710673:0;git commit cnn_lrp.py 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.'
+: 1658710749:0;git commit
+: 1658710793:0;git pull --rebase
+: 1658710810:0;git commit cnn_lrp.py
+: 1658710820:0;git log
+: 1658710863:0;git reset --hard origin/master
+: 1658710920:0;‚ÉΩØ ls\
+10000        __pycache__  cnn_lrp.py   cnn_train.py\
+README.md    cnn.py       cnn_model    data\
+‚ÉΩØ git add cnn_lrp.py\
+‚ÉΩØ git commit "Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None."\
+error: pathspec 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.' did not match any file(s) known to git\
+‚ÉΩØ git commit cnn.lrp 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.'\
+error: pathspec 'cnn.lrp' did not match any file(s) known to git\
+error: pathspec 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.' did not match any file(s) known to git\
+‚ÉΩØ git commit cnn_lrp.py 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.'\
+error: pathspec 'Employed same LRP rule for all layers (specifically changed the else on line 137). Tried the implementation of LRP on linear layers done on MLP model, but shape mismatch between A[l] and w.t(). Changed weights and biases to contain no None.' did not match any file(s) known to git\
+‚ÉΩØ git commit\
+On branch main\
+Your branch and 'origin/main' have diverged,\
+and have 1 and 1 different commits each, respectively.\
+  (use "git pull" to merge the remote branch into yours)\
+\
+Changes not staged for commit:\
+  (use "git add <file>..." to update what will be committed)\
+  (use "git restore <file>..." to discard changes in working directory)\
+	modified:   10000\
+\
+no changes added to commit (use "git add" and/or "git commit -a")\
+‚ÉΩØ git pull --rebase\
+error: cannot pull with rebase: You have unstaged changes.\
+error: please commit or stash them.\
+‚ÉΩØ git commit cnn_lrp.py\
+On branch main\
+Your branch and 'origin/main' have diverged,\
+and have 1 and 1 different commits each, respectively.\
+  (use "git pull" to merge the remote branch into yours)\
+\
+Changes not staged for commit:\
+  (use "git add <file>..." to update what will be committed)\
+  (use "git restore <file>..." to discard changes in working directory)\
+	modified:   10000\
+\
+no changes added to commit (use "git add" and/or "git commit -a")\
+‚ÉΩØ git log\
+‚ÉΩØ git reset --hard origin/master\
+fatal: ambiguous argument 'origin/master': unknown revision or path not in the working tree.\
+Use '--' to separate paths from revisions, like this:\
+'git <command> [<revision>...] -- [<file>...]'\
+‚ÉΩØ git reset --hard origin/master\
+fatal: ambiguous argument 'origin/master': unknown revision or path not in the working tree.\
+Use '--' to separate paths from revisions, like this:\
+'git <command> [<revision>...] -- [<file>...]'\
+ ÔÉ•π ÓÇ± ÔÅº ~/Doc/N/CNN_LRP ÓÇ± ÔÉ§É≥ ÔÉ§¶ main ‚Éß£1‚ÉßÉÅ1 ls ÓÇ∞ git reset --hard origin/master    ÓÇ≤ 128 ‚ÉºÉ∏ ÓÇ≥ env_pytorch ÓÉººccccec
+: 1658710928:0;git diff origin/<branchname>\
+\
+
+: 1658710964:0;git commit cnn_lrp.py
+: 1658711037:0;git diff --name-only --cached
+: 1658711049:0;git add cnn_lrp.py
+: 1658711052:0;git commit cnn_lrp.py
+: 1658711055:0;git diff --name-only --cached
+: 1658711063:0;git add cnn_lrp.py
+: 1658711066:0;git commit
+: 1658711095:0;git add --all
+: 1658711101:0;git diff --name-only --cached
+: 1658711129:0;git reset HEAD -- .
+: 1658711186:0;git add --all
+: 1658711192:0;git commit --all
