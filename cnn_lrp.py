@@ -152,4 +152,4 @@ for l in range(1,L)[::-1]:
         z = incr(newlayer(layers[l],rho).forward(A[l]))  # step 1
         s = (R[l+1]/z).data                                    # step 2
         (z*s).sum().backward(); c = A[l].grad                  # step 3
-        R[l] = (A[l]*c).data 
+        R[l] = (A[l]*c).data
