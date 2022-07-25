@@ -106,3 +106,5 @@ Use '--' to separate paths from revisions, like this:\
 : 1658711511:0;git commit cnn_lrp.py
 : 1658711583:0;git push -f origin master
 : 1658711602:0;git push origin main
+: 1658711632:0;ls
+: 1658711637:0;vim README.md
