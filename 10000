@@ -90,3 +90,19 @@ Use '--' to separate paths from revisions, like this:\
 : 1658711129:0;git reset HEAD -- .
 : 1658711186:0;git add --all
 : 1658711192:0;git commit --all
+: 1658711294:0;git push --all
+: 1658711314:0;git diff --name-only --cached
+: 1658711363:0;git add --all
+: 1658711365:0;git diff --name-only --cached
+: 1658711387:0;git reset
+: 1658711388:0;ls
+: 1658711391:0;git diff --name-only --cached
+: 1658711396:0;git add cnn_lrp.py
+: 1658711399:0;git diff --name-only --cached
+: 1658711403:0;git commit --all
+: 1658711421:0;git push -f origin master
+: 1658711480:0;git show-ref
+: 1658711498:0;git diff --name-only --cached
+: 1658711511:0;git commit cnn_lrp.py
+: 1658711583:0;git push -f origin master
+: 1658711602:0;git push origin main
