@@ -101,53 +101,24 @@ def plot_heatmap(sample_image, sample_label, layers):
     fig.savefig(path + str(sample_label) + '_relevance_scores')
     plt.close()
     
-
-    # getting relevance scores for every layer except the input
-    # T = torch.FloatTensor((1.0*(np.arange(10)==sample_label).reshape([1,10])))
-    # R = [None]*L + [(A[-1]*T).data]
     R = [None]*L + [A[-1].data]
 
     for l in range(1,L)[::-1]:
         A[l] = (A[l].data).requires_grad_(True)
 
-        # try using vanilla rho and incr first
+        # try using vanilla rho() and incr()
         rho = lambda p: p
         incr = lambda z: z+1e-9
 
         if isinstance(layers[l],torch.nn.MaxPool2d): 
             layers[l] = torch.nn.AvgPool2d(kernel_size=2)
         if isinstance(layers[l],torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-            # if l <= 2:       
-            #     rho = lambda p: p + 0.25*p.clamp(min=0)
-            #     incr = lambda z: z+1e-9
-            # if 3 <= l <= 5: 
-            #     rho = lambda p: p
-            #     incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
-            # if l >= 6:       
-            #     rho = lambda p: p
-            #     incr = lambda z: z+1e-9
-
             z = incr(newlayer(layers[l], rho).forward(A[l]))         # step 1
             s = (R[l+1] / z).data                                    # step 2
             (z*s).sum().backward() 
             c = A[l].grad                                            # step 3
             R[l] = (A[l]*c).data                                     # step 4
         else:
-            # Attempt 1
-            # print('layer: ' + str(l) + ', ' + str(layers[l]))
-            # print('R shape: ' + str(R[l+1].shape))
-            # R[l] = R[l+1]
-            # print(R)
-
-            # Attempt 2
-            # w = rho(weights[l])
-            # b = rho(biases[l])
-            # z = incr(torch.matmul(A[l], w.t()) + b)       # step 1
-            # s = R[l+1] / z                                # step 2
-            # c = torch.matmul(s, w)                        # step 3
-            # R[l] = A[l]*c                                 # step 4
-
-            # Attempt 3
             z = incr(newlayer(layers[l],rho).forward(A[l]))        # step 1
             s = (R[l+1]/z).data                                    # step 2
             (z*s).sum().backward(); c = A[l].grad                  # step 3
