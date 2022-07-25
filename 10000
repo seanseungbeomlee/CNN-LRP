@@ -5,3 +5,8 @@
 : 1658679738:0;clear
 : 1658679739:0;python cnn_lrp.py
 : 1658680483:0;/opt/anaconda3/envs/env_pytorch/bin/python /Users/sean/Documents/Neubauer_Research/CNN_LRP/cnn_lrp.py
+: 1658680884:0;python cnn_lrp.py
+: 1658684750:0;ls
+: 1658684771:0;python cnn_lrp.py
+: 1658709202:0;clear
+: 1658709203:0;python cnn_lrp.py

@@ -2,7 +2,6 @@ from random import sample
 import torch
 from torch import nn
 from torchsummary import summary
-from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 from torchvision.utils import make_grid
@@ -60,9 +59,10 @@ def incr(z,l):
 def standardize_image(sample_image):
     mean = torch.Tensor([0.1307]).reshape(1,-1,1,1)
     std  = torch.Tensor([0.3081]).reshape(1,-1,1,1)
-    return (torch.FloatTensor(sample_image*1) - mean) / std
+    # return (torch.FloatTensor(sample_image[np.newaxis].permute([0, 3, 1, 2])*1) - mean) / std
+    return (torch.FloatTensor(sample_image[np.newaxis]*1) - mean) / std
 
-def newlayer(layer,g):
+def newlayer(layer, g):
     layer = copy.deepcopy(layer)
 
     try: layer.weight = nn.Parameter(g(layer.weight))
@@ -73,18 +73,14 @@ def newlayer(layer,g):
     return layer
 
 
-layers = [layer for layer in model.modules() if not isinstance(layer, nn.Sequential) and not isinstance(layer, cnn.CNN)]
+layers = [layer for layer in model.modules() if not isinstance(layer, nn.Sequential) and not isinstance(layer, cnn.CNN) and not isinstance(layer, nn.Softmax)]
 print('Layers: ' + str(layers))
-R = model(test_data[0][0].unsqueeze(0).detach())
-# # from R only choose desired class to explain
-# # here we choose the predicted class
-# R = torch.max(R)
 
 params = [layers[i].state_dict() for i in range(len(layers))]
 keys = [param.keys() for param in params]
-weights = [params[i]['weight'] if 'weight' in keys[i] else None for i in range(len(params))]
-biases = [params[i]['bias'] if 'bias' in keys[i] else None for i in range(len(params))]
-L = len(weights)
+weights = [params[i]['weight'] for i in range(1, len(params)) if 'weight' in keys[i] and params[i]['weight'] is not None]
+biases = [params[i]['bias'] for i in range(1, len(params)) if 'bias' in keys[i] and params[i]['bias'] is not None]
+L = len(layers)
 print('Number of layers: ' + str(L))
 
 # sample image and label
@@ -99,17 +95,26 @@ for l in range(L):
     A[l+1] = layers[l].forward(A[l])
 
 scores = np.array(A[-1].data.view(-1))
-T = torch.FloatTensor((1.0*(np.arange(10)==sample_label).reshape([1,10,1,1])))
-R = [None]*L + [(A[-1]*T).data]
+# T = torch.FloatTensor((1.0*(np.arange(10)==sample_label).reshape([1,10])))
+# R = [None]*L + [(A[-1]*T).data]
+R = [None]*L + [A[-1].data]
+
+# print(len(A), len(R))
+# print(A[-1].shape)
+# print(R[-1].shape)
+# print(R[-1])
+# R[-1] = R[-1].reshape([-1, 64, 7, 7])
 
 for l in range(1,L)[::-1]:
     A[l] = (A[l].data).requires_grad_(True)
 
+    # try using vanilla rho and incr first
+    rho = lambda p: p
+    incr = lambda z: z+1e-9
+
     if isinstance(layers[l],torch.nn.MaxPool2d): 
         layers[l] = torch.nn.AvgPool2d(kernel_size=2)
     if isinstance(layers[l],torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-
-        # try using vanilla rho and incr first
         # if l <= 2:       
         #     rho = lambda p: p + 0.25*p.clamp(min=0)
         #     incr = lambda z: z+1e-9
@@ -120,19 +125,31 @@ for l in range(1,L)[::-1]:
         #     rho = lambda p: p
         #     incr = lambda z: z+1e-9
 
-        rho = lambda p: p
-        incr = lambda z: z+1e-9
-
         z = incr(newlayer(layers[l], rho).forward(A[l]))        # step 1
-        print('layer: ' + str(l) + ', ' + str(layers[l]))
-        print('R shape: ' + str(R[l+1].shape))
-        print('z shape: ' + str(z.shape))
+        # print('layer: ' + str(l) + ', ' + str(layers[l]))
+        # print('A shape: ' + str(A[l+1].shape))
+        # print('R shape: ' + str(R[l+1].shape))
+        # print('z shape: ' + str(z.shape))
         s = (R[l+1] / z).data                                    # step 2
         (z*s).sum().backward() 
         c = A[l].grad                  # step 3
         R[l] = (A[l]*c).data                                   # step 4
     else:
-        print('layer: ' + str(l) + ', ' + str(layers[l]))
-        print('R shape: ' + str(R[l+1].shape))
-        R[l] = R[l+1]
+        # print('layer: ' + str(l) + ', ' + str(layers[l]))
+        # print('R shape: ' + str(R[l+1].shape))
+        # R[l] = R[l+1]
+        # print(R)
 
+
+        # w = rho(weights[l])
+        # b = rho(biases[l])
+        
+        # z = incr(torch.matmul(A[l], w.t()) + b)    # step 1
+        # s = R[l+1] / z                                # step 2
+        # c = torch.matmul(s, w)                        # step 3
+        # R[l] = A[l]*c                                 # step 4
+
+        z = incr(newlayer(layers[l],rho).forward(A[l]))  # step 1
+        s = (R[l+1]/z).data                                    # step 2
+        (z*s).sum().backward(); c = A[l].grad                  # step 3
+        R[l] = (A[l]*c).data 
