@@ -7,8 +7,10 @@ import torchvision.transforms as transforms
 from torchvision.utils import make_grid
 from matplotlib import pyplot as plt
 import numpy as np
+import seaborn as sns
 import copy
 import cnn
+import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('Device: ' + str(device))
@@ -56,9 +58,7 @@ def rho(w,l):
 def incr(z,l): 
     return z + [None,0.0,0.1,0.0][l] * (z**2).mean()**.5+1e-9
 
-def standardize_image(sample_image):
-    mean = torch.Tensor([0.1307]).reshape(1,-1,1,1)
-    std  = torch.Tensor([0.3081]).reshape(1,-1,1,1)
+def standardize_image(sample_image, mean, std):
     # return (torch.FloatTensor(sample_image[np.newaxis].permute([0, 3, 1, 2])*1) - mean) / std
     return (torch.FloatTensor(sample_image[np.newaxis]*1) - mean) / std
 
@@ -72,14 +72,111 @@ def newlayer(layer, g):
     except AttributeError: pass
     return layer
 
+def plot_heatmap(sample_image, sample_label, layers):
+    # standardize image
+    mean = torch.Tensor([0.1307]).reshape(1,-1,1,1)
+    std  = torch.Tensor([0.3081]).reshape(1,-1,1,1)
+    X = standardize_image(sample_image=sample_image, mean=mean, std=std)
+
+    # activations at each layer
+    A = [X]+[None]*L
+    for l in range(L):
+        A[l+1] = layers[l].forward(A[l])
+
+    # Relevance scores for the last layer
+    scores = np.array(A[-1].data.view(-1))
+    print('Relevance Scores:')
+    for i, score in enumerate(scores):
+        print(str(i) + ' : ' + str(score))
+
+    fig = plt.figure()
+    ax0 = sns.barplot(x=np.arange(0, 10), y=scores)
+    ax0.set(xlabel='Classes', ylabel='Scores', title='Relevance Scores')
+    plt.show()
+    path = os.getcwd() + '/PNGS/'
+    try: 
+        os.mkdir(path) 
+    except OSError as error: 
+        print(error)  
+    fig.savefig(path + str(sample_label) + '_relevance_scores')
+    plt.close()
+    
+
+    # getting relevance scores for every layer except the input
+    # T = torch.FloatTensor((1.0*(np.arange(10)==sample_label).reshape([1,10])))
+    # R = [None]*L + [(A[-1]*T).data]
+    R = [None]*L + [A[-1].data]
+
+    for l in range(1,L)[::-1]:
+        A[l] = (A[l].data).requires_grad_(True)
+
+        # try using vanilla rho and incr first
+        rho = lambda p: p
+        incr = lambda z: z+1e-9
+
+        if isinstance(layers[l],torch.nn.MaxPool2d): 
+            layers[l] = torch.nn.AvgPool2d(kernel_size=2)
+        if isinstance(layers[l],torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
+            # if l <= 2:       
+            #     rho = lambda p: p + 0.25*p.clamp(min=0)
+            #     incr = lambda z: z+1e-9
+            # if 3 <= l <= 5: 
+            #     rho = lambda p: p
+            #     incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
+            # if l >= 6:       
+            #     rho = lambda p: p
+            #     incr = lambda z: z+1e-9
+
+            z = incr(newlayer(layers[l], rho).forward(A[l]))         # step 1
+            s = (R[l+1] / z).data                                    # step 2
+            (z*s).sum().backward() 
+            c = A[l].grad                                            # step 3
+            R[l] = (A[l]*c).data                                     # step 4
+        else:
+            # Attempt 1
+            # print('layer: ' + str(l) + ', ' + str(layers[l]))
+            # print('R shape: ' + str(R[l+1].shape))
+            # R[l] = R[l+1]
+            # print(R)
+
+            # Attempt 2
+            # w = rho(weights[l])
+            # b = rho(biases[l])
+            # z = incr(torch.matmul(A[l], w.t()) + b)       # step 1
+            # s = R[l+1] / z                                # step 2
+            # c = torch.matmul(s, w)                        # step 3
+            # R[l] = A[l]*c                                 # step 4
+
+            # Attempt 3
+            z = incr(newlayer(layers[l],rho).forward(A[l]))        # step 1
+            s = (R[l+1]/z).data                                    # step 2
+            (z*s).sum().backward(); c = A[l].grad                  # step 3
+            R[l] = (A[l]*c).data
+
+    # getting relevance scores for input layer
+    A[0] = (A[0].data).requires_grad_(True)
+
+    lb = (A[0].data*0+(0-mean)/std).requires_grad_(True)
+    hb = (A[0].data*0+(1-mean)/std).requires_grad_(True)
+
+    z = layers[0].forward(A[0]) + 1e-9                                     # step 1 (a)
+    z -= newlayer(layers[0],lambda p: p.clamp(min=0)).forward(lb)          # step 1 (b)
+    z -= newlayer(layers[0],lambda p: p.clamp(max=0)).forward(hb)          # step 1 (c)
+    s = (R[1]/z).data                                                      # step 2
+    (z*s).sum().backward(); c,cp,cm = A[0].grad,lb.grad,hb.grad            # step 3
+    R[0] = (A[0]*c+lb*cp+hb*cm).data                                       # step 4
+
+    fig, axs = plt.subplots(nrows = 2, ncols=2)
+    ax1 = sns.heatmap(R[6][0].sum(axis=0), xticklabels=False, yticklabels=False, ax=axs[0, 0]).set(title='Layer 6')
+    ax2 = sns.heatmap(R[4][0].sum(axis=0), xticklabels=False, yticklabels=False, ax=axs[0, 1]).set(title='Layer 4')
+    ax3 = sns.heatmap(R[2][0].sum(axis=0), xticklabels=False, yticklabels=False, ax=axs[1, 0]).set(title='Layer 2')
+    ax4 = sns.heatmap(R[0][0].sum(axis=0), xticklabels=False, yticklabels=False, ax=axs[1, 1]).set(title='Layer 0')
+    plt.show()
+    fig.savefig(path + str(sample_label) + '_heatmaps')
+    plt.close()
 
 layers = [layer for layer in model.modules() if not isinstance(layer, nn.Sequential) and not isinstance(layer, cnn.CNN) and not isinstance(layer, nn.Softmax)]
 print('Layers: ' + str(layers))
-
-params = [layers[i].state_dict() for i in range(len(layers))]
-keys = [param.keys() for param in params]
-weights = [params[i]['weight'] for i in range(1, len(params)) if 'weight' in keys[i] and params[i]['weight'] is not None]
-biases = [params[i]['bias'] for i in range(1, len(params)) if 'bias' in keys[i] and params[i]['bias'] is not None]
 L = len(layers)
 print('Number of layers: ' + str(L))
 
@@ -87,69 +184,18 @@ print('Number of layers: ' + str(L))
 sample_idx = 0
 sample_image = test_data[sample_idx][0]
 sample_label = test_data[sample_idx][1] 
+print('Label: ' + str(sample_label))
+print('Prediction: ' + str(predict_label(sample_idx)))
+sns.set()
+plot_heatmap(sample_image=sample_image, sample_label=sample_label, layers=layers)
 
-X = standardize_image(sample_image=sample_image)
-
-A = [X]+[None]*L
-for l in range(L):
-    A[l+1] = layers[l].forward(A[l])
-
-scores = np.array(A[-1].data.view(-1))
-# T = torch.FloatTensor((1.0*(np.arange(10)==sample_label).reshape([1,10])))
-# R = [None]*L + [(A[-1]*T).data]
-R = [None]*L + [A[-1].data]
-
-# print(len(A), len(R))
-# print(A[-1].shape)
-# print(R[-1].shape)
-# print(R[-1])
-# R[-1] = R[-1].reshape([-1, 64, 7, 7])
-
-for l in range(1,L)[::-1]:
-    A[l] = (A[l].data).requires_grad_(True)
-
-    # try using vanilla rho and incr first
-    rho = lambda p: p
-    incr = lambda z: z+1e-9
-
-    if isinstance(layers[l],torch.nn.MaxPool2d): 
-        layers[l] = torch.nn.AvgPool2d(kernel_size=2)
-    if isinstance(layers[l],torch.nn.Conv2d) or isinstance(layers[l],torch.nn.AvgPool2d):
-        # if l <= 2:       
-        #     rho = lambda p: p + 0.25*p.clamp(min=0)
-        #     incr = lambda z: z+1e-9
-        # if 3 <= l <= 5: 
-        #     rho = lambda p: p
-        #     incr = lambda z: z+1e-9+0.25*((z**2).mean()**.5).data
-        # if l >= 6:       
-        #     rho = lambda p: p
-        #     incr = lambda z: z+1e-9
-
-        z = incr(newlayer(layers[l], rho).forward(A[l]))        # step 1
-        # print('layer: ' + str(l) + ', ' + str(layers[l]))
-        # print('A shape: ' + str(A[l+1].shape))
-        # print('R shape: ' + str(R[l+1].shape))
-        # print('z shape: ' + str(z.shape))
-        s = (R[l+1] / z).data                                    # step 2
-        (z*s).sum().backward() 
-        c = A[l].grad                  # step 3
-        R[l] = (A[l]*c).data                                   # step 4
-    else:
-        # print('layer: ' + str(l) + ', ' + str(layers[l]))
-        # print('R shape: ' + str(R[l+1].shape))
-        # R[l] = R[l+1]
-        # print(R)
-
-
-        # w = rho(weights[l])
-        # b = rho(biases[l])
-        
-        # z = incr(torch.matmul(A[l], w.t()) + b)    # step 1
-        # s = R[l+1] / z                                # step 2
-        # c = torch.matmul(s, w)                        # step 3
-        # R[l] = A[l]*c                                 # step 4
-
-        z = incr(newlayer(layers[l],rho).forward(A[l]))  # step 1
-        s = (R[l+1]/z).data                                    # step 2
-        (z*s).sum().backward(); c = A[l].grad                  # step 3
-        R[l] = (A[l]*c).data
+# getting a sample image of 8
+for i, data in enumerate(test_data):
+    if data[1] == 8:
+        sample_idx = i
+        break
+sample_image = test_data[sample_idx][0]
+sample_label = test_data[sample_idx][1] 
+print('Label: ' + str(sample_label))
+print('Prediction: ' + str(predict_label(sample_idx)))
+plot_heatmap(sample_image=sample_image, sample_label=sample_label, layers=layers)
