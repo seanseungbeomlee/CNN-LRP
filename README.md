@@ -1,4 +1,4 @@
-# CNN_LRP
+# Layer-wise Relevance Propagation for Convolutional Neural Networks
 Implementation of layer-wise relevance propagation on a convolutional neural network trained on the MNIST handwritten digit dataset.
 Example of heat maps for select layers for a sample input image of 7:\
 ![alt text](PNGS/7_heatmaps.png?raw=true)\
